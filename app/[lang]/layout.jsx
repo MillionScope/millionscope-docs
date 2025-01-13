@@ -103,7 +103,7 @@ export default async function RootLayout({ children, params }) {
   return (
     <html lang={lang} dir={getDirection(lang)} suppressHydrationWarning>
       <Head>
-        <link
+        {/* <link
           rel="apple-touch-icon"
           sizes="180x180"
           href="/favicon/apple-touch-icon.png"
@@ -119,13 +119,13 @@ export default async function RootLayout({ children, params }) {
           type="image/png"
           sizes="16x16"
           href="/favicon/favicon-16x16.png"
-        />
+        /> */}
         {/* <link rel="manifest" href="/favicon/site.webmanifest" /> */}
-        <link
+        {/* <link
           rel="mask-icon"
           href="/favicon/safari-pinned-tab.svg"
           color="#000000"
-        />
+        /> */}
         <meta property="og:image" content="https://right-shift-pm2c6zqyo-artginzburg.vercel.app/opengraph-image.png?121e2b7355255853"></meta>
         {/* <meta name="msapplication-TileColor" content="#fff" />
         <meta httpEquiv="Content-Language" content="en" />

@@ -11,14 +11,16 @@ export default {
   //   type: 'page',
   //   title: 'Posts'
   // },
-  posts: {
-    type: 'page',
-    title: 'Posts'
-  },
   '--': {
     type: 'separator',
     title: 'Posts'
   },
+  posts: {
+    type: 'page',
+    display: 'hidden',
+    title: 'Posts'
+  },
+
   sample: {
     type: 'page',
     title: 'Sample'

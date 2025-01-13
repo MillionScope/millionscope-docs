@@ -24,7 +24,8 @@
     "baseUrl": "./",
     "paths": {
       "@/*": ["/*"],
-      "@homepage":["/homepage/*"]
+      "@homepage":["/homepage/*"],
+      "@utils":["/utils/*"],
     },
     "plugins": [
       {

@@ -21,6 +21,8 @@
     "resolveJsonModule": true,
     "paths": {
       "@/*": ["/*"],
+      "@homepage/*":["/homepage/*"],
+      "@utils/*":["/utils/*"],
     },
     "plugins": [
       {
