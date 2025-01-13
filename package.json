@@ -1,0 +1,42 @@
+{
+  "name": "millionscope-docs",
+  "description": "Documentation for Millionscope",
+  "license": "MIT",
+  "scripts": {
+    "build": "NODE_OPTIONS='--max-old-space-size=8192' next build",
+    "dev": "next --turbopack",
+    "gen": "next-sitemap",
+    "postbuild": "pagefind --site build/server/app --output-path public/_pagefind",
+    "start": "next start"
+  },
+  "dependencies": {
+    "clsx": "^2.1.1",
+    "cssnano": "^7.0.6",
+    "fast-glob": "^3.3.3",
+    "framer-motion": "^11.17.0",
+    "next": "^15.1.4",
+    "nextra": "4.0.0-rc.0",
+    "nextra-theme-docs": "4.0.0-rc.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "@vercel/analytics": "^1.4.1",
+    "@vercel/speed-insights": "^1.1.0",
+    "cobe": "^0.6.3",
+    "focus-visible": "^5.2.1",
+    "intersection-observer": "^0.12.2",
+    "js-yaml": "^4.1.0",
+    "markdown-to-jsx": "^7.7.3",
+    "next-sitemap": "^4.2.3",
+    "react-intersection-observer": "^9.14.1",
+    "react-spring": "^9.7.5",
+    "sharp": "^0.33.5"
+  },
+  "devDependencies": {
+    "@types/node": "22.10.5",
+    "pagefind": "^1.3.0"
+  },
+  "browserslist": [
+    ">= .25%",
+    "not dead"
+  ]
+}
