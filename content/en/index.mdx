@@ -1,18 +1,37 @@
-import { Bleed } from 'nextra/components'
+---
+title: MillionScope - 👋 Wonderful science in your hand
+searchable: false
+---
+
+import Intro from "@/homepage/intro"
+import { Bleed, Callout, Tabs } from "nextra/components"
 import Homepage from "@/homepage/homepage"
+import { Cobe } from "@/homepage/cobe"
+import Link from "next/link"
 
-# Homepage
+{/* wrapped with {} to mark it as javascript so mdx will not put it under a p tag */}
 
+<Intro />
 
-**Nextra** is a [Next.js](https://nextjs.org) based static site generator.
+<p className="x:text-center x:text-lg x:mt-6 x:text-gray-600 x:md:!text-2xl">👋 Wonderful science in your hand</p>
 
-<Homepage/>
+<Cobe />
 
-It supports Markdown and React components, automatically
-generated
-file-system based routing, built-in syntax highlighting, image optimization,
-custom layouts, i18n, and all the features you love about Next.js.
+<div className="x:mb-20 x:mt-16">
+  <Callout emoji="🎯">
+    Most of posts comming from{" "}
+    <Link href="https://lilianweng.github.io/" target="_blank">
+      **Li Lian Weng Blog**
+    </Link>{" "}
+    and{" "}
+    <Link href="https://colah.github.io/" target="_blank">
+      **Christopher Olah Blog**
+    </Link>
+  </Callout>
+</div>
 
-Here's what you will get in 1 minute:
+<Homepage />
 
-<Bleed>![Nextra Example](/images/attention-attention/cheng2016-fig1.png)</Bleed>
+## Follow us
+
+Following us on [@millionscope](https://twitter.com/millionscope) on Twitter for updates.

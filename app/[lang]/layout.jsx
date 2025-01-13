@@ -4,7 +4,7 @@ import { getPageMap } from "nextra/page-map"
 import "./styles.css"
 import "./globals.css"
 import "katex/dist/katex.min.css"
-import { millionscope, Twitter } from '@/components/icons'
+import { MillionScopeIcon, Twitter } from '@/components/icons'
 import { getDictionary, getDirection } from '../_dictionaries/get-dictionary'
 
 export const { viewport } = Head
@@ -71,7 +71,7 @@ export default async function RootLayout({ children, params }) {
         href="https://millionscope.com/about"
       >
         Powered by
-        <millionscope />
+        <MillionScopeIcon />
       </a>
       <p className="x:mt-2 x:text-xs">
         © {new Date().getFullYear()} MillionScope Inc.

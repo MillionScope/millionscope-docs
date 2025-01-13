@@ -17,7 +17,6 @@ export default {
   },
   posts: {
     type: 'page',
-    display: 'hidden',
     title: 'Posts'
   },
 
