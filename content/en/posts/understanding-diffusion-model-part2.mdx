@@ -1,0 +1,259 @@
+---
+title: "Understanding Diffusion Models: A Unified Perspective - Part 2"
+description: "Understanding Diffusion Models: A Unified Perspective - Part 2"
+authors:
+  - name: Calvin Luo
+    link: https://twitter.com/calvinyluo
+date: 2021-07-11
+---
+import Image from 'next/image'
+
+## Learning Diffusion Noise Parameters
+
+Source : https://calvinyluo.com/2022/08/26/diffusion-tutorial.html
+
+
+Let us investigate how the noise parameters of a VDM can be jointly learned.  One potential approach is to model $\alpha_t$ using a neural network $\hat\alpha_{\bm{\eta}}(t)$ with parameters $\bm{\eta}$.  However, this is inefficient as inference must be performed multiple times at each timestep $t$ to compute $\bar\alpha_t$.  Whereas caching can mitigate this computational cost, we can also derive an alternate way to learn the diffusion noise parameters. By substituting our variance equation from Equation 79 into our derived per-timestep objective in Equation 93, we can reduce:
+
+```math
+\begin{align}
+\frac{1}{2\sigma_q^2(t)}\frac{\bar\alpha_{t-1}(1-\alpha_t)^2}{(1 -\bar\alpha_{t})^2}\left[\left\lVert\hat{\boldsymbol{x}}_{\boldsymbol{\theta}}(\boldsymbol{x}_t, t) - \boldsymbol{x}_0\right\rVert_2^2\right] = \frac{1}{2}\left(\frac{\bar\alpha_{t-1}}{1 - \bar\alpha_{t-1}} -\frac{\bar\alpha_t}{1 -\bar\alpha_{t}}\right)\left[\left\lVert\hat{\boldsymbol{x}}_{\boldsymbol{\theta}}(\boldsymbol{x}_t, t) - \boldsymbol{x}_0\right\rVert_2^2\right]
+\end{align}
+```
+
+```math
+\begin{align*}
+{\frac{1}{2\sigma_q^2(t)}\frac{\bar\alpha_{t-1}(1-\alpha_t)^2}{(1 -\bar\alpha_{t})^2}\left[\left\lVert\hat x_{\bm{\theta}}(x_t, t) - x_0\right\rVert_2^2\right]}
+&= {\frac{1}{2\frac{(1 - \alpha_t)(1 - \bar\alpha_{t-1})}{1 -\bar\alpha_{t}}}\frac{\bar\alpha_{t-1}(1-\alpha_t)^2}{(1 -\bar\alpha_{t})^2}\left[\left\lVert\hat x_{\bm{\theta}}(x_t, t) - x_0\right\rVert_2^2\right]}  \\
+&= {\frac{1}{2}\frac{1 -\bar\alpha_{t}}{(1 - \alpha_t)(1 - \bar\alpha_{t-1})}\frac{\bar\alpha_{t-1}(1-\alpha_t)^2}{(1 -\bar\alpha_{t})^2}\left[\left\lVert\hat x_{\bm{\theta}}(x_t, t) - x_0\right\rVert_2^2\right]}  \\
+&= {\frac{1}{2}\frac{\bar\alpha_{t-1}(1-\alpha_t)}{(1 - \bar\alpha_{t-1})(1 -\bar\alpha_{t})}\left[\left\lVert\hat x_{\bm{\theta}}(x_t, t) - x_0\right\rVert_2^2\right]}  \\
+&= {\frac{1}{2}\frac{\bar\alpha_{t-1}-\bar\alpha_t}{(1 - \bar\alpha_{t-1})(1 -\bar\alpha_{t})}\left[\left\lVert\hat x_{\bm{\theta}}(x_t, t) - x_0\right\rVert_2^2\right]}  \\
+&= {\frac{1}{2}\frac{\bar\alpha_{t-1} - \bar\alpha_{t-1}\bar\alpha_t + \bar\alpha_{t-1}\bar\alpha_t-\bar\alpha_t}{(1 - \bar\alpha_{t-1})(1 -\bar\alpha_{t})}\left[\left\lVert\hat x_{\bm{\theta}}(x_t, t) - x_0\right\rVert_2^2\right]}  \\
+&= {\frac{1}{2}\frac{\bar\alpha_{t-1}(1 - \bar\alpha_t) -\bar\alpha_t(1 - \bar\alpha_{t-1})}{(1 - \bar\alpha_{t-1})(1 -\bar\alpha_{t})}\left[\left\lVert\hat x_{\bm{\theta}}(x_t, t) - x_0\right\rVert_2^2\right]}  \\
+&= {\frac{1}{2}\left(\frac{\bar\alpha_{t-1}(1 - \bar\alpha_t)}{(1 - \bar\alpha_{t-1})(1 -\bar\alpha_{t})} -\frac{\bar\alpha_t(1 - \bar\alpha_{t-1})}{(1 - \bar\alpha_{t-1})(1 -\bar\alpha_{t})}\right)\left[\left\lVert\hat x_{\bm{\theta}}(x_t, t) - x_0\right\rVert_2^2\right]}  \\
+&= {\frac{1}{2}\left(\frac{\bar\alpha_{t-1}}{1 - \bar\alpha_{t-1}} -\frac{\bar\alpha_t}{1 -\bar\alpha_{t}}\right)\left[\left\lVert\hat x_{\bm{\theta}}(x_t, t) - x_0\right\rVert_2^2\right]}
+\end{align*}
+```
+
+
+
+Recall from Equation 61 that $q(x_t|x_0)$ is a Gaussian of form $\mathcal{N}(x_{t} ; \sqrt{\bar\alpha_t}x_0, \left(1 - \bar\alpha_t\right)\textbf{I})$.  Then, following the definition of the [signal-to-noise ratio (SNR)](https://en.wikipedia.org/wiki/Signal-to-noise_ratio#Alternate_definition) as $\text{SNR} = \frac{\mu^2}{\sigma^2}$, we can write the SNR at each timestep $t$ as:
+
+```math
+\begin{align}
+    \text{SNR}(t) &= \frac{\bar\alpha_t}{1 -\bar\alpha_{t}}
+\end{align}
+```
+
+Then, our derived Equation 102 (and Equation 93) can be simplified as:
+
+$$
+\begin{align}
+\frac{1}{2\sigma_q^2(t)}\frac{\bar\alpha_{t-1}(1-\alpha_t)^2}{(1 -\bar\alpha_{t})^2}\left[\left\lVert\hat x_{\bm{\theta}}(x_t, t) - x_0\right\rVert_2^2\right] &= \frac{1}{2}\left(\text{SNR}(t-1) -\text{SNR}(t)\right)\left[\left\lVert\hat x_{\bm{\theta}}(x_t, t) - x_0\right\rVert_2^2\right]
+\end{align}
+$$
+
+
+As the name implies, the SNR represents the ratio between the original signal and the amount of noise present; a higher SNR represents more signal and a lower SNR represents more noise.  In a diffusion model, we require the SNR to monotonically decrease as timestep $t$ increases; this formalizes the notion that perturbed input $x_t$ becomes increasingly noisy over time, until it becomes identical to a standard Gaussian at $t=T$.
+
+Following the simplification of the objective in Equation 104, we can directly parameterize the SNR at each timestep using a neural network, and learn it jointly along with the diffusion model.  As the SNR must monotonically decrease over time, we can represent it as:
+
+$$
+\begin{align}
+    \text{SNR}(t) = \text{exp}(-\omega_{\bm{\eta}}(t))
+\end{align}
+$$
+
+where $\omega_{\bm{\eta}}(t)$ is modeled as a monotonically increasing neural network with parameters $\bm{\eta}$.  Negating $\omega_{\bm{\eta}}(t)$ results in a monotonically decreasing function, whereas the exponential forces the resulting term to be positive.
+Note that the objective in Equation must now optimize over $\bm{\eta}$ as well.
+
+$$
+\begin{align}
+& \quad \,\underset{\boldsymbol{\theta}, \,\boldsymbol{\eta}}{\arg\min}\, \sum_{t=2}^{T} \mathbb{E}_{q(\boldsymbol{x}_{t}\mid\boldsymbol{x}_0)}\left[\mathcal{D}_{\text{KL}}(q(\boldsymbol{x}_{t-1}\mid\boldsymbol{x}_t, \boldsymbol{x}_0) \mid\mid p_{\boldsymbol{\theta}}(\boldsymbol{x}_{t-1}\mid\boldsymbol{x}_t))\right] \nonumber \\
+&= \underset{\boldsymbol{\theta}, \,\boldsymbol{\eta}}{\arg\min}\, \mathbb{E}_{t\sim U\{2, T\}}\left[\mathbb{E}_{q(\boldsymbol{x}_{t}\mid\boldsymbol{x}_0)}\left[ \frac{1}{2}\left(\text{SNR}(t-1) -\text{SNR}(t)\right)\left[\left\lVert\hat{\boldsymbol{x}}_{\boldsymbol{\theta}}(\boldsymbol{x}_t, t) - \boldsymbol{x}_0\right\rVert_2^2\right] \right]\right]
+\end{align}
+$$
+
+By combining our parameterization of SNR in Equation 105 with our definition of SNR in Equation 108, we can also explicitly derive elegant forms for the value of $\bar\alpha_t$ as well as for the value of $1 - \bar\alpha_t$:
+
+$$
+\begin{align}
+    &\frac{\bar\alpha_t}{1 -\bar\alpha_{t}} = \text{exp}(-\omega_{\bm{\eta}}(t))\\
+    &\therefore \bar\alpha_t = \text{sigmoid}(-\omega_{\bm{\eta}}(t))\\
+    &\therefore 1 - \bar\alpha_t = \text{sigmoid}(\omega_{\bm{\eta}}(t))
+\end{align}
+$$
+
+These terms are necessary for a variety of computations; for example, during optimization, they are used to create arbitrarily noisy $x_t$ from input $x_0$ using the reparameterization trick, as derived in Equation 68.
+
+## Three Equivalent Interpretations
+
+As we previously proved, a Variational Diffusion Model can be trained by simply learning a neural network to predict the original natural image $x_0$ from an arbitrary noised version $x_t$ and its time index $t$.  However, $x_0$ has two other equivalent parameterizations, which leads to two further interpretations for a VDM.
+
+Firstly, we can utilize the reparameterization trick.  In our derivation of the form of $q(x_t|x_0)$, we can rearrange Equation 68 to show that:
+
+$$
+\begin{align}
+x_0 &= \frac{x_t - \sqrt{1 - \bar\alpha_t}\bm{\epsilon}_0}{\sqrt{\bar\alpha_t}} 
+\end{align}
+$$
+
+Plugging this into our previously derived true denoising transition mean $\bm{\mu}_q(x_t, x_0)$, we can rederive as:
+
+
+$$
+\begin{align}
+\boldsymbol{\mu}_q(\boldsymbol{x}_t, \boldsymbol{x}_0) &= \frac{\sqrt{\alpha_t}(1-\bar\alpha_{t-1})\boldsymbol{x}_{t} + \sqrt{\bar\alpha_{t-1}}(1-\alpha_t)\boldsymbol{x}_0}{1 -\bar\alpha_{t}}\\
+&= \frac{1}{\sqrt{\alpha_t}}\boldsymbol{x}_t - \frac{1 - \alpha_t}{\sqrt{1 - \bar\alpha_t}\sqrt{\alpha_t}}\boldsymbol{\epsilon}_0
+\end{align}
+$$
+
+
+$$
+\begin{align*}
+\bm{\mu}_q(x_t, x_0) &= \frac{\sqrt{\alpha_t}(1-\bar\alpha_{t-1})x_{t} + \sqrt{\bar\alpha_{t-1}}(1-\alpha_t)x_0}{1 -\bar\alpha_{t}}  \\
+&= \frac{\sqrt{\alpha_t}(1-\bar\alpha_{t-1})x_{t} + \sqrt{\bar\alpha_{t-1}}(1-\alpha_t)\frac{x_t - \sqrt{1 - \bar\alpha_t}\bm{\epsilon}_0}{\sqrt{\bar\alpha_t}}}{1 -\bar\alpha_{t}}  \\
+&= \frac{\sqrt{\alpha_t}(1-\bar\alpha_{t-1})x_{t} + (1-\alpha_t)\frac{x_t - \sqrt{1 - \bar\alpha_t}\bm{\epsilon}_0}{\sqrt{\alpha_t}}}{1 -\bar\alpha_{t}}  \\
+&= \frac{\sqrt{\alpha_t}(1-\bar\alpha_{t-1})x_{t}}{1 - \bar\alpha_t} + \frac{(1-\alpha_t)x_t}{(1-\bar\alpha_t)\sqrt{\alpha_t}} - \frac{(1 - \alpha_t)\sqrt{1 - \bar\alpha_t}\bm{\epsilon}_0}{(1-\bar\alpha_t)\sqrt{\alpha_t}}  \\
+&= \left(\frac{\sqrt{\alpha_t}(1-\bar\alpha_{t-1})}{1 - \bar\alpha_t} + \frac{1-\alpha_t}{(1-\bar\alpha_t)\sqrt{\alpha_t}}\right)x_t - \frac{(1 - \alpha_t)\sqrt{1 - \bar\alpha_t}}{(1-\bar\alpha_t)\sqrt{\alpha_t}}\bm{\epsilon}_0\\
+&= \left(\frac{\alpha_t(1-\bar\alpha_{t-1})}{(1 - \bar\alpha_t)\sqrt{\alpha_t}} + \frac{1-\alpha_t}{(1-\bar\alpha_t)\sqrt{\alpha_t}}\right)x_t - \frac{1 - \alpha_t}{\sqrt{1 - \bar\alpha_t}\sqrt{\alpha_t}}\bm{\epsilon}_0\\
+&= \frac{\alpha_t-\bar\alpha_{t} + 1-\alpha_t}{(1 - \bar\alpha_t)\sqrt{\alpha_t}}x_t - \frac{1 - \alpha_t}{\sqrt{1 - \bar\alpha_t}\sqrt{\alpha_t}}\bm{\epsilon}_0\\
+&= \frac{1-\bar\alpha_t}{(1 - \bar\alpha_t)\sqrt{\alpha_t}}x_t - \frac{1 - \alpha_t}{\sqrt{1 - \bar\alpha_t}\sqrt{\alpha_t}}\bm{\epsilon}_0\\
+&= \frac{1}{\sqrt{\alpha_t}}x_t - \frac{1 - \alpha_t}{\sqrt{1 - \bar\alpha_t}\sqrt{\alpha_t}}\bm{\epsilon}_0
+\end{align*}
+$$
+
+
+
+Therefore, we can set our approximate denoising transition mean $\bm{\mu}_{\bm{\theta}}(x_t, t)$ as:
+
+$$
+\begin{align}
+\bm{\mu}_{\bm{\theta}}(x_t, t) &= \frac{1}{\sqrt{\alpha_t}}x_t - \frac{1 - \alpha_t}{\sqrt{1 - \bar\alpha_t}\sqrt{\alpha_t}}\bm{\hat\epsilon}_{\bm{\theta}}(x_t, t)
+\end{align}
+$$
+
+and the corresponding optimization problem becomes:
+
+$$
+\begin{align}
+& \quad \,\underset{\boldsymbol{\theta}}{\arg\min}\,  \mathcal{D}_{\text{KL}}(q(\boldsymbol{x}_{t-1}\mid\boldsymbol{x}_t, \boldsymbol{x}_0) \mid\mid p_{\boldsymbol{\theta}}(\boldsymbol{x}_{t-1}\mid\boldsymbol{x}_t)) \nonumber \\
+&= \underset{\boldsymbol{\theta}}{\arg\min}\, \mathcal{D}_{\text{KL}}\left(\mathcal{N}\left(\boldsymbol{x}_{t-1}; \boldsymbol{\mu}_q,\boldsymbol{\Sigma}_q\left(t\right)\right) \mid\mid \mathcal{N}\left(\boldsymbol{x}_{t-1}; \boldsymbol{\mu}_{\boldsymbol{\theta}},\boldsymbol{\Sigma}_q\left(t\right)\right)\right)\\
+&=\underset{\boldsymbol{\theta}}{\arg\min}\, \frac{1}{2\sigma_q^2(t)}\frac{(1 - \alpha_t)^2}{(1 - \bar\alpha_t)\alpha_t}\left[\left\lVert\boldsymbol{\epsilon}_0 - \boldsymbol{\hat{\epsilon}}_{\boldsymbol{\theta}}(\boldsymbol{x}_t, t)\right\rVert_2^2\right]
+\end{align}
+$$
+
+
+$$
+\begin{align*}
+& \quad \,\argmin_{\bm{\theta}} \mathcal{D}_{\text{KL}} ({q(x_{t-1}|x_t, x_0)}{p_{\bm{\theta}}(x_{t-1}|x_t)}) \nonumber \\
+&= \argmin_{\bm{\theta}} \mathcal{D}_{\text{KL}}({\mathcal{N}\left(x_{t-1}; \bm{\mu}_q,\bm{\Sigma}_q\left(t\right)\right)}{\mathcal{N}\left(x_{t-1}; \bm{\mu}_{\bm{\theta}},\bm{\Sigma}_q\left(t\right)\right)} ) \\
+&=\argmin_{\bm{\theta}}\frac{1}{2\sigma_q^2(t)}\left[\left\lVert\frac{1}{\sqrt{\alpha_t}}x_t - \frac{1 - \alpha_t}{\sqrt{1 - \bar\alpha_t}\sqrt{\alpha_t}}\bm{\hat\epsilon}_{\bm{\theta}}(x_t, t) - 
+\frac{1}{\sqrt{\alpha_t}}x_t + \frac{1 - \alpha_t}{\sqrt{1 - \bar\alpha_t}\sqrt{\alpha_t}}\bm{\epsilon}_0\right\rVert_2^2\right]\\
+&=\argmin_{\bm{\theta}}\frac{1}{2\sigma_q^2(t)}\left[\left\lVert \frac{1 - \alpha_t}{\sqrt{1 - \bar\alpha_t}\sqrt{\alpha_t}}\bm{\epsilon}_0 - \frac{1 - \alpha_t}{\sqrt{1 - \bar\alpha_t}\sqrt{\alpha_t}}\bm{\hat\epsilon}_{\bm{\theta}}(x_t, t)\right\rVert_2^2\right]\\
+&=\argmin_{\bm{\theta}}\frac{1}{2\sigma_q^2(t)}\left[\left\lVert \frac{1 - \alpha_t}{\sqrt{1 - \bar\alpha_t}\sqrt{\alpha_t}}(\bm{\epsilon}_0 - \bm{\hat\epsilon}_{\bm{\theta}}(x_t, t))\right\rVert_2^2\right]\\
+&=\argmin_{\bm{\theta}}\frac{1}{2\sigma_q^2(t)}\frac{(1 - \alpha_t)^2}{(1 - \bar\alpha_t)\alpha_t}\left[\left\lVert\bm{\epsilon}_0 - \bm{\hat\epsilon}_{\bm{\theta}}(x_t, t)\right\rVert_2^2\right]
+\end{align*}
+$$
+
+
+
+Here, $\bm{\hat\epsilon}_{\bm{\theta}}(x_t, t)$ is a neural network that learns to predict the source noise $\bm{\epsilon}_0 \sim \mathcal{N}(\bm{\epsilon}; \bm{0}, \textbf{I})$ that determines $x_t$ from $x_0$.  We have therefore shown that learning a VDM by predicting the original image $x_0$ is equivalent to learning to predict the noise; empirically, however, some works have found that predicting the noise resulted in better performance [ho2020denoising, saharia2022photorealistic]().
+
+To derive the third common interpretation of Variational Diffusion Models, we appeal to Tweedie's Formula [efron2011tweedie]().  In English, Tweedie's Formula states that the true mean of an exponential family distribution, given samples drawn from it, can be estimated by the maximum likelihood estimate of the samples (aka empirical mean) plus some correction term involving the score of the estimate.  In the case of just one observed sample, the empirical mean is just the sample itself.  It is commonly used to mitigate sample bias; if observed samples all lie on one end of the underlying distribution, then the negative score becomes large and corrects the naive maximum likelihood estimate of the samples towards the true mean.
+
+Mathematically, for a Gaussian variable $z \sim \mathcal{N}(z;\bm{\mu}_z, \bm{\Sigma}_z)$, Tweedie's Formula states that: 
+$$\mathbb{E}\left[\bm{\mu}_z|z\right] = z + \bm{\Sigma}_z\nabla_z\log p(z)$$
+In this case, we apply it to predict the true posterior mean of $x_t$ given its samples.  From Equation 61, we know that:
+$$q(x_t|x_0) = \mathcal{N}(x_{t} ; \sqrt{\bar\alpha_t}x_0, \left(1 - \bar\alpha_t\right)\textbf{I})$$
+Then, by Tweedie's Formula, we have:
+
+$$
+\begin{align}
+\mathbb{E}\left[\bm{\mu}_{x_t}|x_t\right] = x_t + (1 - \bar\alpha_t)\nabla_{x_t}\log p(x_t)
+\end{align}
+$$
+
+where we write $\nabla_{x_t}\log p(x_t)$ as $\nabla\log p(x_t)$ for notational simplicity.
+According to Tweedie's Formula, the best estimate for the true mean that $x_t$ is generated from, $\bm{\mu}_{x_t} = \sqrt{\bar\alpha_t}x_0$, is defined as:
+
+$$
+\begin{align}
+    \sqrt{\bar\alpha_t}x_0 = x_t + (1 - \bar\alpha_t)\nabla\log p(x_t)\\
+    \therefore x_0 = \frac{x_t + (1 - \bar\alpha_t)\nabla\log p(x_t)}{\sqrt{\bar\alpha_t}}
+\end{align}
+$$
+
+Then, we can plug Equation 109 into our ground-truth denoising transition mean $\bm{\mu}_q(x_t, x_0)$ once again and derive a new form:
+
+
+$$
+\begin{align}
+\boldsymbol{\mu}_q(\boldsymbol{x}_t, \boldsymbol{x}_0) &= \frac{\sqrt{\alpha_t}(1-\bar\alpha_{t-1})\boldsymbol{x}_{t} + \sqrt{\bar\alpha_{t-1}}(1-\alpha_t)\boldsymbol{x}_0}{1 -\bar\alpha_{t}}\\
+&= \frac{1}{\sqrt{\alpha_t}}\boldsymbol{x}_t + \frac{1 - \alpha_t}{\sqrt{\alpha_t}}\nabla\log p(\boldsymbol{x}_t)
+\end{align}
+$$
+
+
+$$
+\begin{align*}
+\bm{\mu}_q(x_t, x_0) &= \frac{\sqrt{\alpha_t}(1-\bar\alpha_{t-1})x_{t} + \sqrt{\bar\alpha_{t-1}}(1-\alpha_t)x_0}{1 -\bar\alpha_{t}}  \\
+&= \frac{\sqrt{\alpha_t}(1-\bar\alpha_{t-1})x_{t} + \sqrt{\bar\alpha_{t-1}}(1-\alpha_t)\frac{x_t + (1 - \bar\alpha_t)\nabla\log p(x_t)}{\sqrt{\bar\alpha_t}}}{1 -\bar\alpha_{t}}  \\
+&= \frac{\sqrt{\alpha_t}(1-\bar\alpha_{t-1})x_{t} + (1-\alpha_t)\frac{x_t + (1 - \bar\alpha_t)\nabla\log p(x_t)}{\sqrt{\alpha_t}}}{1 -\bar\alpha_{t}}  \\
+&= \frac{\sqrt{\alpha_t}(1-\bar\alpha_{t-1})x_{t}}{1 - \bar\alpha_t} + \frac{(1-\alpha_t)x_t}{(1-\bar\alpha_t)\sqrt{\alpha_t}} + \frac{(1 - \alpha_t)(1 - \bar\alpha_t)\nabla\log p(x_t)}{(1-\bar\alpha_t)\sqrt{\alpha_t}}  \\
+&= \left(\frac{\sqrt{\alpha_t}(1-\bar\alpha_{t-1})}{1 - \bar\alpha_t} + \frac{1-\alpha_t}{(1-\bar\alpha_t)\sqrt{\alpha_t}}\right)x_t + \frac{1 - \alpha_t}{\sqrt{\alpha_t}}\nabla\log p(x_t)\\
+&= \left(\frac{\alpha_t(1-\bar\alpha_{t-1})}{(1 - \bar\alpha_t)\sqrt{\alpha_t}} + \frac{1-\alpha_t}{(1-\bar\alpha_t)\sqrt{\alpha_t}}\right)x_t + \frac{1 - \alpha_t}{\sqrt{\alpha_t}}\nabla\log p(x_t)\\
+&= \frac{\alpha_t-\bar\alpha_{t} + 1-\alpha_t}{(1 - \bar\alpha_t)\sqrt{\alpha_t}}x_t + \frac{1 - \alpha_t}{\sqrt{\alpha_t}}\nabla\log p(x_t)\\
+&= \frac{1-\bar\alpha_t}{(1 - \bar\alpha_t)\sqrt{\alpha_t}}x_t + \frac{1 - \alpha_t}{\sqrt{\alpha_t}}\nabla\log p(x_t)\\
+&= \frac{1}{\sqrt{\alpha_t}}x_t + \frac{1 - \alpha_t}{\sqrt{\alpha_t}}\nabla\log p(x_t)
+\end{align*}
+$$
+
+
+Therefore, we can also set our approximate denoising transition mean $\bm{\mu}_{\bm{\theta}}(x_t, t)$ as:
+
+$$
+\begin{align}
+\bm{\mu}_{\bm{\theta}}(x_t, t) &= \frac{1}{\sqrt{\alpha_t}}x_t + \frac{1 - \alpha_t}{\sqrt{\alpha_t}}s_{\bm{\theta}}(x_t, t)
+\end{align}
+$$
+
+and the corresponding optimization problem becomes:
+
+$$
+\begin{align}
+& \quad \,\underset{\boldsymbol{\theta}}{\arg\min}\,  \mathcal{D}_{\text{KL}}(q(\boldsymbol{x}_{t-1}\mid\boldsymbol{x}_t, \boldsymbol{x}_0) \mid\mid p_{\boldsymbol{\theta}}(\boldsymbol{x}_{t-1}\mid\boldsymbol{x}_t)) \nonumber \\
+&= \underset{\boldsymbol{\theta}}{\arg\min}\, \mathcal{D}_{\text{KL}}\left(\mathcal{N}\left(\boldsymbol{x}_{t-1}; \boldsymbol{\mu}_q,\boldsymbol{\Sigma}_q\left(t\right)\right) \mid\mid \mathcal{N}\left(\boldsymbol{x}_{t-1}; \boldsymbol{\mu}_{\boldsymbol{\theta}},\boldsymbol{\Sigma}_q\left(t\right)\right)\right)\\
+&=\underset{\boldsymbol{\theta}}{\arg\min}\, \frac{1}{2\sigma_q^2(t)}\frac{(1 - \alpha_t)^2}{\alpha_t}\left[\left\lVert \boldsymbol{s}_{\boldsymbol{\theta}}(\boldsymbol{x}_t, t) - \nabla\log p(\boldsymbol{x}_t)\right\rVert_2^2\right]
+\end{align}
+$$
+
+
+$$
+\begin{align*}
+& \quad \,\argmin_{\bm{\theta}} \mathcal{D}_{\text{KL}} ({q(x_{t-1}|x_t, x_0)}{p_{\bm{\theta}}(x_{t-1}|x_t)}) \nonumber \\
+&= \argmin_{\bm{\theta}} \mathcal{D}_{\text{KL}}( {\mathcal{N}\left(x_{t-1}; \bm{\mu}_q,\bm{\Sigma}_q\left(t\right)\right)}{\mathcal{N}\left(x_{t-1}; \bm{\mu}_{\bm{\theta}},\bm{\Sigma}_q\left(t\right)\right)} ) \\
+&=\argmin_{\bm{\theta}}\frac{1}{2\sigma_q^2(t)}\left[\left\lVert\frac{1}{\sqrt{\alpha_t}}x_t + \frac{1 - \alpha_t}{\sqrt{\alpha_t}}s_{\bm{\theta}}(x_t, t) - 
+\frac{1}{\sqrt{\alpha_t}}x_t - \frac{1 - \alpha_t}{\sqrt{\alpha_t}}\nabla\log p(x_t)\right\rVert_2^2\right]\\
+&=\argmin_{\bm{\theta}}\frac{1}{2\sigma_q^2(t)}\left[\left\lVert \frac{1 - \alpha_t}{\sqrt{\alpha_t}}s_{\bm{\theta}}(x_t, t) - \frac{1 - \alpha_t}{\sqrt{\alpha_t}}\nabla\log p(x_t)\right\rVert_2^2\right]\\
+&=\argmin_{\bm{\theta}}\frac{1}{2\sigma_q^2(t)}\left[\left\lVert \frac{1 - \alpha_t}{\sqrt{\alpha_t}}(s_{\bm{\theta}}(x_t, t) - \nabla\log p(x_t))\right\rVert_2^2\right]\\
+&=\argmin_{\bm{\theta}}\frac{1}{2\sigma_q^2(t)}\frac{(1 - \alpha_t)^2}{\alpha_t}\left[\left\lVert s_{\bm{\theta}}(x_t, t) - \nabla\log p(x_t)\right\rVert_2^2\right]
+\end{align*}
+$$
+
+Here, $s_{\bm{\theta}}(x_t, t)$ is a neural network that learns to predict the score function $\nabla_{x_t}\log p(x_t)$, which is the gradient of $x_t$ in data space, for any arbitrary noise level $t$.
+
+The astute reader will notice that the score function $\nabla\log p(x_t)$ looks remarkably similar in form to the source noise $\bm{\epsilon}_0$.  This can be shown explicitly by combining Tweedie's Formula (Equation 109) with the reparameterization trick (Equation 62):
+
+$$
+\begin{align}
+x_0 = \frac{x_t + (1 - \bar\alpha_t)\nabla\log p(x_t)}{\sqrt{\bar\alpha_t}} &= \frac{x_t - \sqrt{1 - \bar\alpha_t}\bm{\epsilon}_0}{\sqrt{\bar\alpha_t}}  \\
+\therefore (1 - \bar\alpha_t)\nabla\log p(x_t) &= -\sqrt{1 - \bar\alpha_t}\bm{\epsilon}_0\\
+\nabla\log p(x_t) &= -\frac{1}{\sqrt{1 - \bar\alpha_t}}\bm{\epsilon}_0
+\end{align}
+$$
+
+As it turns out, the two terms are off by a constant factor that scales with time!  The score function measures how to move in data space to maximize the log probability; intuitively, since the source noise is added to a natural image to corrupt it, moving in its opposite direction "denoises" the image and would be the best update to increase the subsequent log probability.  Our mathematical proof justifies this intuition; we have explicitly shown that learning to model the score function is equivalent to modeling the negative of the source noise (up to a scaling factor).
+
+We have therefore derived three equivalent objectives to optimize a VDM: learning a neural network to predict the original image $x_0$, the source noise $\bm{\epsilon}_0$, or the score of the image at an arbitrary noise level $\nabla\log p(x_t)$.  The VDM can be scalably trained by stochastically sampling timesteps $t$ and minimizing the norm of the prediction with the ground truth target.
+
