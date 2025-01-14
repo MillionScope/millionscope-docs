@@ -83,7 +83,7 @@ export default async function RootLayout({ children, params }) {
   const navbar = (
     <Navbar
       // projectIcon={<SWRLogo className="h-10" />}
-      projectLink={"https://github.com/millionscope/millionscope.github.io"}
+      projectLink={"https://github.com/millionscope/millionscope-docs"}
       logo={
         <>
           <millionscope className="x:h-10" />
@@ -140,7 +140,7 @@ export default async function RootLayout({ children, params }) {
           navbar={navbar}
           footer={footer}
           editLink={null}
-          docsRepositoryBase="https://github.com/millionscope/millionscope.github.io/tree/main"
+          docsRepositoryBase="https://github.com/millionscope/millionscope-docs/tree/main"
           sidebar={{ defaultMenuCollapseLevel: 1, autoCollapse: true, toggleButton: true }}
           toc={{
             float: true

@@ -20,8 +20,8 @@ export default {
     title: 'Posts'
   },
 
-  sample: {
+  about: {
     type: 'page',
-    title: 'Sample'
+    title: 'About'
   },
 }
