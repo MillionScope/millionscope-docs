@@ -11,6 +11,8 @@ import type { MdxFile } from 'nextra'
 
 export function Blog() {
   const router = useRouter()
+  const lang = router.locale;
+   let pageMap = await getPageMap(`/${lang}`)
   // const { locale } = useRouter()
   // const pages: Page[] = getPagesUnderRoute(`/${locale}/blog`);
   // const filtered: MdxFile[] = pages.filter((page) => "frontMatter" in page).map(page => page as MdxFile)
